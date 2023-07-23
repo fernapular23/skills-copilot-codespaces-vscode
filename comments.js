@@ -1,66 +1,55 @@
 // create web server
-// 1. import http module
-const http = require('http');
-const url = require('url');
-const fs = require('fs');
-const comments = [];
-// 2. create web server
-// 3. register request event
-// 4. listen port
-http.createServer((req, res) => {
-    // 1. get url
-    // console.log(req.url);
-    // 2. parse url
-    const urlObj = url.parse(req.url, true);
-    // console.log(urlObj);
-    // 3. get path
-    const pathName = urlObj.pathname;
-    // console.log(pathName);
-    // 4. judge path
-    if (pathName === '/') {
-        // 5. read html file
-        fs.readFile('./views/index.html', (err, data) => {
-            if (err) {
-                return res.end('404 Not Found');
-            }
-            // 6. read comments
-            fs.readFile('./data/comments.json', (err, commentsData) => {
-                if (err) {
-                    return res.end('404 Not Found');
-                }
-                // 7. render html
-                const comments = JSON.parse(commentsData.toString());
-                const htmlStr = template.render(data.toString(), {
-                    comments: comments
-                });
-                // 8. send response
-                res.end(htmlStr);
-            });
-        });
-    } else if (pathName.indexOf('/public/') === 0) {
-        // 5. read static resource
-        fs.readFile('.' + pathName, (err, data) => {
-            if (err) {
-                return res.end('404 Not Found');
-            }
-            // 6. send response
-            res.end(data);
-        });
-    } else if (pathName === '/post') {
-        // 5. read html file
-        fs.readFile('./views/post.html', (err, data) => {
-            if (err) {
-                return res.end('404 Not Found');
-            }
-            // 6. send response
-            res.end(data);
-        });
-    } else if (pathName === '/pinglun') {
-        // 1. get params
-        // console.log(urlObj.query);
-        // 2. add comments
-        const comment = urlObj.query;
-        comment.dateTime = '2019-10-10';
-        comments.unshift(comment);
-        // 3. redirect
-        // status code:
+// 1. load modules
+const express = require('express')
+const bodyParser = require('body-parser')
+const fs = require('fs')
+const app = express()
+const port = 3000
+
+// 2. set middleware
+// parse application/x-www-form-urlencoded
+app.use(bodyParser.urlencoded({ extended: false }))
+// parse application/json
+app.use(bodyParser.json())
+
+// 3. set router
+// 3.1. get comments
+app.get('/comments', (req, res) => {
+  // 3.1.1. get comments from file
+  const comments = JSON.parse(fs.readFileSync('./comments.json'))
+  // 3.1.2. send comments
+  res.send(comments)
+})
+
+// 3.2. add comment
+app.post('/comments', (req, res) => {
+  // 3.2.1. get comment from request
+  const comment = req.body
+  // 3.2.2. get comments from file
+  const comments = JSON.parse(fs.readFileSync('./comments.json'))
+  // 3.2.3. add comment to comments
+  comments.push(comment)
+  // 3.2.4. save comments to file
+  fs.writeFileSync('./comments.json', JSON.stringify(comments))
+  // 3.2.5. send comment
+  res.send(comment)
+})
+
+// 3.3. delete comment
+app.delete('/comments/:id', (req, res) => {
+  // 3.3.1. get id from request
+  const id = Number(req.params.id)
+  // 3.3.2. get comments from file
+  const comments = JSON.parse(fs.readFileSync('./comments.json'))
+  // 3.3.3. delete comment from comments
+  comments.splice(id, 1)
+  // 3.3.4. save comments to file
+  fs.writeFileSync('./comments.json', JSON.stringify(comments))
+  // 3.3.5. send comment
+  res.send(comments)
+})
+
+// 4. start server
+app.listen(port, () => {
+  console.log(`Example app listening at http://localhost:${port}`)
+})
